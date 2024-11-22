@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  role          Role      @default(END_USER)
+  microsoftId   String?   @unique
+  googleId      String?   @unique
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  tickets       Ticket[]  @relation("CreatedTickets")
+  assignedTickets Ticket[] @relation("AssignedTickets")
+  assets        Asset[]   @relation("AssignedAssets")
+}
+
+model Asset {
+  id            String    @id @default(cuid())
+  type          AssetType
+  serialNumber  String    @unique
+  name          String
+  status        AssetStatus @default(AVAILABLE)
+  purchaseDate  DateTime?
+  warrantyEnd   DateTime?
+  location      String?
+  notes         String?
+  assignedTo    User?     @relation("AssignedAssets", fields: [assignedToId], references: [id])
+  assignedToId  String?
+  tickets       Ticket[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  customFields  Json?
+}
+
+model Ticket {
+  id            String    @id @default(cuid())
+  title         String
+  description   String
+  status        TicketStatus @default(OPEN)
+  priority      Priority  @default(MEDIUM)
+  type          TicketType
+  createdBy     User      @relation("CreatedTickets", fields: [createdById], references: [id])
+  createdById   String
+  assignedTo    User?     @relation("AssignedTickets", fields: [assignedToId], references: [id])
+  assignedToId  String?
+  asset         Asset?    @relation(fields: [assetId], references: [id])
+  assetId       String?
+  comments      Comment[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Comment {
+  id            String    @id @default(cuid())
+  content       String
+  ticket        Ticket    @relation(fields: [ticketId], references: [id])
+  ticketId      String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMINISTRATOR
+  CHROMEBOOK_ADMIN
+  HELP_DESK
+  END_USER
+}
+
+enum AssetType {
+  CHROMEBOOK
+  DESKTOP_PC
+  MAC
+  INTERACTIVE_PANEL
+  PRINTER
+  PROJECTOR
+  OTHER
+}
+
+enum AssetStatus {
+  AVAILABLE
+  ASSIGNED
+  IN_REPAIR
+  RETIRED
+  LOST
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  ON_HOLD
+  RESOLVED
+  CLOSED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketType {
+  INCIDENT
+  PROBLEM
+  CHROMEBOOK
+  WEBSITE
+  QUOTE
+}
